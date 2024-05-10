@@ -37,11 +37,10 @@ end ALU_tb;
 architecture test_bench of ALU_tb is
     component ALU is
         port ( i_op     : in STD_LOGIC_VECTOR (2 downto 0);
-               i_A      : in STD_LOGIC_VECTOR (8 downto 0);
-               i_B      : in STD_LOGIC_VECTOR (8 downto 0);
-               
+               i_A      : in STD_LOGIC_VECTOR (7 downto 0);
+               i_B      : in STD_LOGIC_VECTOR (7 downto 0);
                o_flag   : out STD_LOGIC_VECTOR (2 downto 0);
-               o_result : out STD_LOGIC_VECTOR (8 downto 0)
+               o_result : out STD_LOGIC_VECTOR (7 downto 0)
              );
     end component ALU;
     
@@ -77,16 +76,71 @@ port map (
 sim_proc: process
 begin
 
--- 0 + 1 = 1, no carry
-w_op <= "000"; w_A <= "00000000"; w_B <= "00000001";
-    assert w_result = "000000001" report "addition failed" severity failure;
-    assert w_flag(0) = '0' report "sign wrong (addition)" severity failure;
+-- 1 + 1 = 2, no carry
+w_op <= "000"; w_A <= "00000001"; w_B <= "00000001";
+    assert w_result = "000000010" report "addition failed" severity failure;
+    assert w_flag(0) = '0' report "wrongful carryout (addition)" severity failure;
+    assert w_flag(1) = '0' report "wrongful zero value (addition)" severity failure;
+    assert w_flag(2) = '0' report "sign wrong (addition)" severity failure;
 
--- 0 - (127) = -127, 
-w_op <= "001"; w_A <= "00000000"; w_B <= "11111111";
-    assert w_result = "10000001" report "subtraction failed" severity failure;
-    assert w_flag(0) = '0' report "sign wrong (addition)" severity failure;
-    end;   
+-- 6 - 2 = 4, carry
+w_op <= "001"; w_A <= "00000110"; w_B <= "00000010";
+    assert w_result = "00000100" report "subtraction failed" severity failure;
+    assert w_flag(0) = '1' report "no carryout (subtraction)" severity failure;
+    assert w_flag(1) = '0' report "wrongful zero value (subtraction)" severity failure;
+    assert w_flag(2) = '0' report "sign wrong (subtraction)" severity failure;
+    
+-- -1 + 1 = 0, carry, zero
+w_op <= "000"; w_A <= "11111111"; w_B <= "00000001";
+    assert w_result = "00000000" report "addition failed" severity failure;
+    assert w_flag(0) = '1' report "no carryout (addition)" severity failure;
+    assert w_flag(1) = '1' report "no zero value (addition)" severity failure;
+    assert w_flag(2) = '0' report "sign wrong (addition)" severity failure;
+        
+-- 1 - 4 = -3, no carry, negative value
+w_op <= "001"; w_A <= "00000001"; w_B <= "00000100";
+    assert w_result = "10000011" report "subtraction failed" severity failure;
+    assert w_flag(0) = '0' report "no carryout (subtraction)" severity failure;
+    assert w_flag(1) = '0' report "wrongful zero value (subtraction)" severity failure;
+    assert w_flag(2) = '1' report "sign wrong (subtraction)" severity failure;
+            
+-- 5 OR 3, op code 100
+w_op <= "100"; w_A <= "00000101"; w_B <= "00000011";
+    assert w_result = "00000111" report "OR failed" severity failure;
+    assert w_flag(0) = '0' report "wrongful carryout (OR)" severity failure;
+    assert w_flag(1) = '0' report "wrongful zero value (OR)" severity failure;
+    assert w_flag(2) = '0' report "sign wrong (OR)" severity failure;
+    
+-- 5 OR 3, op code 101
+w_op <= "101"; w_A <= "00000101"; w_B <= "00000011";
+    assert w_result = "00000111" report "OR failed" severity failure;
+    assert w_flag(0) = '0' report "wrongful carryout (OR)" severity failure;
+    assert w_flag(1) = '0' report "wrongful zero value (OR)" severity failure;
+    assert w_flag(2) = '0' report "sign wrong (OR)" severity failure;
+    
+-- 5 AND 3, op code 010
+w_op <= "010"; w_A <= "00000101"; w_B <= "00000011";
+    assert w_result = "00000001" report "AND failed" severity failure;
+    assert w_flag(0) = '0' report "wrongful carryout (AND)" severity failure;
+    assert w_flag(1) = '0' report "wrongful zero value (AND)" severity failure;
+    assert w_flag(2) = '0' report "sign wrong (AND)" severity failure;
+    
+    --START    
+-- 5 LLS 3
+w_op <= "011"; w_A <= "00000101"; w_B <= "00000011";
+    assert w_result = "00101000" report "LLS failed" severity failure;
+    assert w_flag(0) = '0' report "wrongful carryout (LLS)" severity failure;
+    assert w_flag(1) = '0' report "wrongful zero value (LLS)" severity failure;
+    assert w_flag(2) = '0' report "sign wrong (LLS)" severity failure;
+    
+-- 5 RLS 3, zero
+w_op <= "011"; w_A <= "00000101"; w_B <= "00000011";
+    assert w_result = "00000000" report "RLS failed" severity failure;
+    assert w_flag(0) = '0' report "wrongful carryout (RLS)" severity failure;
+    assert w_flag(1) = '1' report "wrongful zero value (RLS)" severity failure;
+    assert w_flag(2) = '0' report "sign wrong (RLS)" severity failure;    
+    
+end process;   
 
 -- and, or, shift left, shift right, addition with/without carry
 
